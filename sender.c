@@ -7,6 +7,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h> 
 
 #include<string.h>
 #include <time.h>
@@ -22,31 +23,40 @@ void send_file(FILE *fp, int sockfd){
   while(fgets(buffer, SIZE, fp) != NULL) {
     n=send(sockfd, buffer, sizeof(buffer), 0);
     if ( n < 0 ) {
-      printf("Error in sending file.");
+      printf("Error in sending file. ");
       exit(0);
     }
    
    bzero(buffer, SIZE);
   }
-   printf("sent %d bytes\n",n);
-  printf("The file send\n");
+  printf("sent %d bytes\n",n);
 }
 
 int main(){
   int sockfd;
   struct sockaddr_in serv_addr;
-  char buffer[256];
+  char buffer[SIZE];
   FILE *fp;
   char *filename = "1mb.txt";
 
-  for (size_t i = 0; i < 5; i++)
-  {
+ for (size_t i = 0; i < 10; i++)
+  {  
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(sockfd < 0) {
         printf("Error in socket ");
         exit(0);
     }
     printf("Server socket created successfully.\n");
+
+      if (i>4)
+    {
+      strcpy(buffer, "reno"); 
+      socklen_t  len = strlen(buffer);
+      if (setsockopt(sockfd, IPPROTO_TCP, TCP_CONGESTION, buffer, len) != 0) {
+        perror("setsockopt"); 
+        return -1;
+      }
+    }
 
     serv_addr.sin_family= AF_INET;
     serv_addr.sin_port = htons(SERVER_PORT);
@@ -57,22 +67,22 @@ int main(){
         printf("Connection failed! ");
     }
 
+  printf("connected to server\n");
+
     //send 
     fp = fopen(filename, "r");
     if (fp == NULL) {
          printf("Error in reading file.");
          exit(0);
     }
-
-    clock_t time = clock();
- 
+  
     send_file(fp, sockfd);
-   
-     time = clock()-time;
-    double time_taken = ((double)time)/CLOCKS_PER_SEC; 
-    printf("File send successfully.time: %lf\n",time_taken);
+    
+
+    printf("File sent successfully.\n");
     close(sockfd);
 
   }
+
     return 0;
 }
